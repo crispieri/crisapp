@@ -3,6 +3,7 @@
 return [
     'modelLabel' => 'Producto',
     'pluralModelLabel'     => 'Productos',
+    'manageProduct' => 'Productos',
     'section' => 'Informacion del Producto',
     'image_section' => 'Imagenes',
     'price_section' => 'Precio',

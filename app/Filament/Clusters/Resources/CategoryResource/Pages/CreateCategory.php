@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Filament\Resources\CategoryResource\Pages;
+namespace App\Filament\Clusters\Resources\CategoryResource\Pages;
 
-use App\Filament\Resources\CategoryResource;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
+use App\Filament\Clusters\Resources\CategoryResource;
 
 class CreateCategory extends CreateRecord
 {

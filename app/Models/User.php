@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class User extends Authenticatable implements FilamentUser
 {
@@ -62,6 +63,19 @@ class User extends Authenticatable implements FilamentUser
         return true;
     }
 
+    // Relación uno a uno con el perfil del cliente
+    public function clientProfile(): HasOne
+    {
+        return $this->hasOne(ClientProfile::class);
+    }
+
+    // Relación uno a muchos con las direcciones
+    public function addresses(): HasMany
+    {
+        return $this->hasMany(Address::class);
+    }
+
+    // Relación muchos a muchos con las tiendas
     public function stores(): BelongsToMany
     {
         return $this->belongsToMany(Store::class, 'store_user');

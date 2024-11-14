@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Filament\Resources\BrandResource\Pages;
+namespace App\Filament\Clusters\Resources\BrandResource\Pages;
 
-use App\Filament\Resources\BrandResource;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
+use App\Filament\Clusters\Resources\BrandResource;
 
 class CreateBrand extends CreateRecord
 {

@@ -12,11 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('addresses', function (Blueprint $table) {
-            $table->id();
-            $table->foreignUlid('user_id')->constrained('users')->cascadeOnDelete();
-            $table->integer('street_address')->nullable();
-            $table->integer('city')->nullable();
-            $table->integer('state')->nullable();
+            $table->ulid('id')->primary();
+            $table->foreignUlid('user_id')->constrained('users')->cascadeOnDelete(); // Relación con el usuario
+            $table->string('street_address'); // Dirección principal
+            $table->string('commune')->nullable(); // Comuna
+            $table->string('city')->nullable(); // Ciudad
+            $table->string('region')->nullable(); // Región
+            $table->string('country')->default('Chile'); // País
             $table->timestamps();
         });
     }

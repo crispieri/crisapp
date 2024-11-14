@@ -17,7 +17,10 @@ class BrandFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'brand_name' => $this->faker->word(),
+            'slug' => $this->faker->slug(),
+            'image' => $this->faker->imageUrl(), // URL de una imagen aleatoria
+            'is_active' => $this->faker->boolean(),
         ];
     }
 }

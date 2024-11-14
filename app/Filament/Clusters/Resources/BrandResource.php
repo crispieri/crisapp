@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources;
+namespace App\Filament\Clusters\Resources;
 
 use Filament\Forms;
 use Filament\Tables;
@@ -10,16 +10,19 @@ use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
 use Filament\Resources\Resource;
+use App\Filament\Clusters\ManageProduct;
 use Illuminate\Database\Eloquent\Builder;
-use App\Filament\Resources\BrandResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Clusters\Resources\BrandResource\Pages;
 use App\Filament\Resources\BrandResource\RelationManagers;
 
 class BrandResource extends Resource
 {
     protected static ?string $model = Brand::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-bookmark';
+
+    protected static ?string $cluster = ManageProduct::class;
 
     public static function getModelLabel(): string
     {

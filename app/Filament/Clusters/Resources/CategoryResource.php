@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources;
+namespace App\Filament\Clusters\Resources;
 
 use Filament\Forms;
 use Filament\Tables;
@@ -10,16 +10,19 @@ use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
 use Filament\Resources\Resource;
+use App\Filament\Clusters\ManageProduct;
 use Illuminate\Database\Eloquent\Builder;
-use App\Filament\Resources\CategoryResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Clusters\Resources\CategoryResource\Pages;
 use App\Filament\Resources\CategoryResource\RelationManagers;
 
 class CategoryResource extends Resource
 {
     protected static ?string $model = Category::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-tag';
+
+    protected static ?string $cluster = ManageProduct::class;
 
     public static function getModelLabel(): string
     {
@@ -64,14 +67,20 @@ class CategoryResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('parent.id')
-                    ->numeric()
+                    ->label(__('category.parent_id'))
+                    ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('category_name')
+                    ->label(__('category.category_name'))
+                    ->sortable()
                     ->searchable(),
                 Tables\Columns\TextColumn::make('slug')
+                    ->label(__('category.slug'))
                     ->searchable(),
-                Tables\Columns\ImageColumn::make('image'),
+                Tables\Columns\ImageColumn::make('image')
+                    ->label(__('category.image')),
                 Tables\Columns\IconColumn::make('is_active')
+                    ->label(__('category.is_active'))
                     ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()

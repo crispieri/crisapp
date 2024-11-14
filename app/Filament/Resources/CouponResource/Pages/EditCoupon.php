@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Filament\Resources\BrandResource\Pages;
+namespace App\Filament\Resources\CouponResource\Pages;
 
-use App\Filament\Resources\BrandResource;
+use App\Filament\Resources\CouponResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 
-class EditBrand extends EditRecord
+class EditCoupon extends EditRecord
 {
-    protected static string $resource = BrandResource::class;
+    protected static string $resource = CouponResource::class;
 
     protected function getHeaderActions(): array
     {

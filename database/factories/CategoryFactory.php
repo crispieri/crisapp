@@ -17,7 +17,11 @@ class CategoryFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'parent_id' => null, // Asigna un ID de categoría padre si es necesario
+            'category_name' => $this->faker->word(),
+            'slug' => $this->faker->slug(),
+            'image' => $this->faker->imageUrl(), // URL de una imagen aleatoria
+            'is_active' => $this->faker->boolean(),
         ];
     }
 }

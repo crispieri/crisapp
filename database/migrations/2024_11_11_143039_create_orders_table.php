@@ -15,7 +15,10 @@ return new class extends Migration
         Schema::create('orders', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->foreignUlid('user_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->enum('status', array_column(OrderStatusEnum::cases(), 'value'))->default(OrderStatusEnum::Pending);
+            $table->foreignUlid('address_id')->nullable()->constrained('addresses')->nullOnDelete();
+            $table->enum('status', array_column(OrderStatusEnum::cases(), 'value'))->default(OrderStatusEnum::PENDING);
+            $table->foreignUlid('coupon_id')->nullable()->constrained('coupons')->nullOnDelete();
+            $table->integer('discount_amount')->default(0); // Valor de descuento aplicado
             $table->integer('grand_total')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();

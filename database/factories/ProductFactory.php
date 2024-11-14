@@ -17,7 +17,17 @@ class ProductFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'category_id' => null, // Asigna un ID de categoría si es necesario
+            'brand_id' => null, // Asigna un ID de marca si es necesario
+            'product_name' => $this->faker->word(),
+            'slug' => $this->faker->slug(),
+            'price' => $this->faker->randomFloat(2, 5, 100), // Precio aleatorio entre 5 y 100
+            'images' => $this->faker->imageUrl(), // URL de una imagen aleatoria
+            'description' => $this->faker->paragraph(),
+            'is_active' => $this->faker->boolean(),
+            'is_featured' => $this->faker->boolean(),
+            'in_stock' => $this->faker->numberBetween(0, 100),
+            'on_sale' => $this->faker->boolean(),
         ];
     }
 }
