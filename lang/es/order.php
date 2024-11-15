@@ -2,11 +2,15 @@
 
 return [
     'modelLabel' => 'Orden',
-    'pluralModelLabel' => 'Ordenes',
+    'pluralModelLabel' => 'Órdenes',
+    'sectionProduct' => 'Productos',
     'sectionCustomer' => 'Cliente',
-    'sectionProduct' => 'Producto',
+    'coupon' => 'Cupón',
     'user_id' => 'Usuario',
+    'address' => 'Dirección',
     'status' => 'Estado',
-    'grand_total' => 'Total',
     'notes' => 'Notas',
+    'sub_total' => 'Subtotal',
+    'discount_amount' => 'Monto de descuento',
+    'total_after_discount' => 'Total después del descuento',
 ];

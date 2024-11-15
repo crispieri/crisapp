@@ -1,3 +1,3 @@
 <x-filament-panels::page>
-    @livewire('order-create-component')
+@livewire('pos-order')
 </x-filament-panels::page>
