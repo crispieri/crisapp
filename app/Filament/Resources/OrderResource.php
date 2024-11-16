@@ -10,6 +10,7 @@ use App\Models\Product;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Forms\Form;
+use App\Models\OrderItem;
 use Filament\Tables\Table;
 use Filament\Support\RawJs;
 use App\Enums\OrderStatusEnum;
@@ -36,154 +37,182 @@ class OrderResource extends Resource
         return __('order.pluralModelLabel');
     }
 
+    // Función para calcular datos antes de crear una orden
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        return $this->processOrderCalculations($data);
+    }
+
+    // Función para calcular datos antes de guardar una orden
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        return $this->processOrderCalculations($data);
+    }
+
+    // Función para procesar los cálculos de la orden
+    private function processOrderCalculations(array $data): array
+    {
+        // Calcula el subtotal sumando los subtotales de los items
+        $data['sub_total'] = $this->calculateSubTotal($data['orderItem'] ?? []);
+
+        // Obtén el cupón válido si está presente
+        $coupon = $this->getValidCoupon($data['coupon_id'] ?? null);
+
+        if ($coupon) {
+            // Aplica el descuento
+            $data['discount_amount'] = $coupon->calculateDiscount($data['sub_total']);
+            $data['total_after_discount'] = $data['sub_total'] - $data['discount_amount'];
+        } else {
+            $data['coupon_id'] = null;
+            $data['discount_amount'] = 0;
+            $data['total_after_discount'] = $data['sub_total'];
+        }
+
+        return $data;
+    }
+
+    // Función para calcular el subtotal de los OrderItems
+    private function calculateSubTotal(array $orderItems): float
+    {
+        return array_reduce($orderItems, function ($carry, $item) {
+            $orderItem = new OrderItem($item); // Crea una instancia temporal del modelo
+            return $carry + $orderItem->calculateSubTotal(); // Usa el método del modelo
+        }, 0);
+    }
+
+    // Función para obtener un cupón válido
+    private function getValidCoupon(?int $couponId): ?Coupon
+    {
+        if (!$couponId) {
+            return null;
+        }
+
+        $coupon = Coupon::find($couponId);
+
+        return $coupon && $coupon->isValid() ? $coupon : null;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\Group::make()->schema([
-                    Forms\Components\Section::make(__('order.sectionProduct'))->schema([
-                        \Awcodes\TableRepeater\Components\TableRepeater::make('orderItem')
-                            ->label('')
-                            ->relationship()
-                            ->headers([
-                                \Awcodes\TableRepeater\Header::make('Nombre')->width('300px'),
-                                \Awcodes\TableRepeater\Header::make('Cantidad'),
-                                \Awcodes\TableRepeater\Header::make('Precio por Unidad'),
-                                \Awcodes\TableRepeater\Header::make('Sub Total'),
-                            ])
-                            ->schema([
-                                Forms\Components\Select::make('product_id')
-                                    ->relationship('product', 'product_name')
-                                    ->required()
-                                    ->distinct()
-                                    ->searchable()
-                                    ->columnSpanFull()
-                                    ->reactive()
-                                    ->disableOptionsWhenSelectedInSiblingRepeaterItems()
-                                    ->afterStateUpdated(fn($state, Set $set) => $set('unit_amount', Product::find($state)?->price ?? 0))
-                                    ->afterStateUpdated(fn($state, Set $set) => $set('sub_total', Product::find($state)?->price ?? 0)),
-
-                                Forms\Components\TextInput::make('quantity')
-                                    ->reactive()
-                                    ->default(1)
-                                    ->minValue(1)
-                                    ->afterStateUpdated(fn($state, Set $set, Get $get) => $set('sub_total', $state * $get('unit_amount'))),
-
-                                Forms\Components\TextInput::make('unit_amount')
-                                    ->numeric()
-                                    ->readOnly(),
-
-                                Forms\Components\TextInput::make('sub_total')
-                                    ->numeric()
-                                    ->dehydrated()
-                                    ->readOnly(),
-
-                            ])->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                // Recalcula el subtotal cada vez que se actualiza un elemento
-                                $total = array_reduce(
-                                    $get('orderItem') ?? [],
-                                    fn($carry, $item) => $carry + ($item['sub_total'] ?? 0),
-                                    0
-                                );
-                                $set('grand_total', $total);
-                            })
-                            ->defaultItems(1)
-                            ->columnSpan('full'),
-                        Forms\Components\Select::make('coupon_id')
-                            ->label(__('order.coupon'))
-                            ->relationship('coupon', 'code')
-                            ->searchable()
-                            ->reactive()
-                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                $coupon = Coupon::find($state);
-
-                                // Si no hay cupón, restablece el descuento
-                                if (!$coupon) {
-                                    $set('discount_amount', 0);
-                                    $set('total_after_discount', $get('sub_total'));
-                                    Notification::make()
-                                        ->title(__('Coupon removed.'))
-                                        ->send();
-                                    return;
-                                }
-
-                                // Si el cupón no es válido, reinicia los valores
-                                if (!$coupon->isValid()) {
-                                    $set('discount_amount', 0);
-                                    $set('total_after_discount', $get('sub_total'));
-                                    $set('coupon_id', null);
-                                    Notification::make()
-                                        ->title(__('The selected coupon is not valid.'))
-                                        ->danger()
-                                        ->send();
-                                    return;
-                                }
-
-                                // Calcula y aplica el descuento
-                                $subTotal = $get('sub_total') ?? 0;
-                                $discount = $coupon->calculateDiscount($subTotal);
-                                $set('discount_amount', $discount);
-                                $set('total_after_discount', $subTotal - $discount);
-                            }),
-
-                        Forms\Components\Placeholder::make('sub_total')
-                            ->label(__('order.sub_total'))
-                            ->content(fn(Get $get) => number_format($get('sub_total') ?? 0, 0, ',', '.')),
-
-                        Forms\Components\Placeholder::make('discount_amount')
-                            ->label(__('order.discount_amount'))
-                            ->content(fn(Get $get) => number_format($get('discount_amount') ?? 0, 0, ',', '.')),
-
-                        Forms\Components\Placeholder::make('total_after_discount')
-                            ->label(__('order.total_after_discount'))
-                            ->content(fn(Get $get) => number_format($get('total_after_discount') ?? 0, 0, ',', '.')),
-                    ]),
-                ])->columnSpan(2),
-
-                //Grupo 2
-                Forms\Components\Group::make()->schema([
-                    Forms\Components\Section::make(__('order.sectionCustomer'))->schema([
-                        // Campo para seleccionar el usuario
+                    Forms\Components\Section::make()->schema([
                         Forms\Components\Select::make('user_id')
                             ->label(__('order.user_id'))
                             ->relationship('user', 'name')
                             ->required()
                             ->searchable()
-                            ->reactive() // Hace que este campo sea reactivo
-                            ->afterStateUpdated(fn($state, callable $set) => $set('address_id', null))
-                            ->columnSpanFull(), // Resetea address_id al cambiar user_id
+                            ->reactive()
+                            ->afterStateUpdated(fn($state, callable $set) => $set('address_id', null)),
 
-                        // Campo para seleccionar la dirección filtrada por el usuario seleccionado
                         Forms\Components\Select::make('address_id')
-                            // ->label(__('order.address'))
                             ->options(function (callable $get) {
-                                $userId = $get('user_id'); // Obtiene el id del usuario seleccionado
-
-                                if ($userId) {
-                                    return \App\Models\Address::where('user_id', $userId)
-                                        ->pluck('street_address', 'id'); // Carga solo las direcciones del usuario seleccionado
-                                }
-
-                                return []; // Devuelve un array vacío si no hay usuario seleccionado
+                                $userId = $get('user_id');
+                                return $userId ? \App\Models\Address::where('user_id', $userId)->pluck('street_address', 'id') : [];
                             })
-                            ->placeholder('Selecione')
-                            ->native(false)
-                            ->disabled(fn(callable $get) => !$get('user_id'))
-                            ->columnSpanFull(), // Deshabilita si no se ha seleccionado un usuario
+                            ->placeholder('Seleccione')
+                            ->disabled(fn(callable $get) => !$get('user_id')),
+                    ])->columns(3),
+                ])->columnSpan(2),
+                Forms\Components\Section::make()->schema([
+                    \Awcodes\TableRepeater\Components\TableRepeater::make('orderItem')
+                        ->label('')
+                        ->relationship()
+                        ->headers([
+                            \Awcodes\TableRepeater\Header::make('Nombre')->width('400px'),
+                            \Awcodes\TableRepeater\Header::make('Cantidad'),
+                            \Awcodes\TableRepeater\Header::make('Precio por Unidad'),
+                            \Awcodes\TableRepeater\Header::make('Precio Oferta'),
+                            \Awcodes\TableRepeater\Header::make('Sub Total'),
+                        ])
+                        ->schema([
+                            Forms\Components\Select::make('product_id')
+                                ->relationship('product', 'product_name')
+                                ->required()
+                                ->reactive()
+                                ->disableOptionsWhenSelectedInSiblingRepeaterItems()
+                                ->afterStateUpdated(function ($state, Set $set) {
+                                    $product = Product::find($state);
+                                    $set('unit_amount', $product->price ?? 0);
+                                    $set('offer_price', $product->offer_price ?? 0);
+                                    $set('sub_total', $product->offer_price ?? $product->price ?? 0);
+                                }),
 
-                        Forms\Components\Select::make('status')
-                            ->label(__('order.status'))
-                            ->options(OrderStatusEnum::class)
-                            ->default(OrderStatusEnum::NEW)
-                            ->required(),
-                    ])->columns(2),
+                            Forms\Components\TextInput::make('quantity')
+                                ->reactive()
+                                ->default(1)
+                                ->minValue(1)
+                                ->afterStateUpdated(fn($state, Set $set, Get $get) => $set('sub_total', $state * $get('unit_amount'))),
 
-                    Forms\Components\Section::make(__('order.sectionTotal'))->schema([
-                        Forms\Components\MarkdownEditor::make('notes')
-                            ->label(__('order.notes')),
-                    ])->columns(1),
+                            Forms\Components\TextInput::make('unit_amount')
+                                ->numeric()
+                                ->readOnly(),
 
-                ])->columnSpan(1)
+                            Forms\Components\TextInput::make('offer_price')
+                                ->numeric()
+                                ->readOnly(),
+
+                            Forms\Components\TextInput::make('sub_total')
+                                ->numeric()
+                                ->readOnly(),
+                        ])
+                        ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                            $subTotal = array_reduce(
+                                $get('orderItem') ?? [],
+                                fn($carry, $item) => $carry + ($item['sub_total'] ?? 0),
+                                0
+                            );
+                            $set('sub_total', $subTotal);
+                            $discountAmount = $get('discount_amount') ?? 0;
+                            $set('total_after_discount', $subTotal - $discountAmount);
+                        })
+                        ->defaultItems(1)
+                        ->columnSpan('full'),
+
+                    Forms\Components\Select::make('coupon_id')
+                        ->label(__('order.coupon'))
+                        ->relationship('coupon', 'code')
+                        ->searchable()
+                        ->reactive()
+                        ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                            $coupon = Coupon::find($state);
+                            $subTotal = $get('sub_total') ?? 0;
+
+                            if (!$coupon) {
+                                $set('discount_amount', 0);
+                                $set('total_after_discount', $subTotal);
+                                return;
+                            }
+
+                            if (!$coupon->isValid()) {
+                                $set('discount_amount', 0);
+                                $set('total_after_discount', $subTotal);
+                                $set('coupon_id', null);
+                                Notification::make()
+                                    ->title(__('The selected coupon is not valid.'))
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            $discount = $coupon->calculateDiscount($subTotal);
+                            $set('discount_amount', $discount);
+                            $set('total_after_discount', $subTotal - $discount);
+                        }),
+
+                    Forms\Components\Placeholder::make('sub_total')
+                        ->label(__('order.sub_total'))
+                        ->content(fn(Get $get) => number_format($get('sub_total') ?? 0, 2)),
+
+                    Forms\Components\Placeholder::make('discount_amount')
+                        ->label(__('order.discount_amount'))
+                        ->content(fn(Get $get) => number_format($get('discount_amount') ?? 0, 2)),
+
+                    Forms\Components\Placeholder::make('total_after_discount')
+                        ->label(__('order.total_after_discount'))
+                        ->content(fn(Get $get) => number_format($get('total_after_discount') ?? 0, 2)),
+                ])->columns(4)
             ])->columns(3);
     }
 
@@ -249,36 +278,5 @@ class OrderResource extends Resource
             'create' => Pages\CreateOrder::route('/create'),
             'edit' => Pages\EditOrder::route('/{record}/edit'),
         ];
-    }
-
-    protected function mutateFormDataBeforeCreate(array $data): array
-    {
-        return $this->processCouponAndTotals($data);
-    }
-
-    protected function mutateFormDataBeforeSave(array $data): array
-    {
-        return $this->processCouponAndTotals($data);
-    }
-
-    private function processCouponAndTotals(array $data): array
-    {
-        // Calcula subtotal sumando subtotales de items
-        $subTotal = array_reduce($data['orderItem'] ?? [], fn($carry, $item) => $carry + ($item['sub_total'] ?? 0), 0);
-        $data['sub_total'] = $subTotal;
-
-        // Revisa si el cupón es válido
-        $coupon = !empty($data['coupon_id']) ? Coupon::find($data['coupon_id']) : null;
-
-        if ($coupon && $coupon->isValid()) {
-            $data['discount_amount'] = $coupon->calculateDiscount($subTotal);
-            $data['total_after_discount'] = $subTotal - $data['discount_amount'];
-        } else {
-            $data['coupon_id'] = null;
-            $data['discount_amount'] = 0;
-            $data['total_after_discount'] = $subTotal;
-        }
-
-        return $data;
     }
 }

@@ -45,15 +45,29 @@ class Coupon extends Model
             (!$this->expires_at || $this->expires_at->isFuture());
     }
 
+
+    public function calculateDiscount(float $subTotal): float
+    {
+        if ($this->type === 'percentage') {
+            return $subTotal * ($this->discount_value / 100);
+        }
+
+        if ($this->type === 'fixed') {
+            return min($this->discount_value, $subTotal); // Evita descuentos mayores al subtotal
+        }
+
+        return 0;
+    }
+
     /**
      * Calcula el descuento basado en el monto dado.
      */
-    public function calculateDiscount(int $amount): int
-    {
-        return $this->type === 'percentage'
-            ? (int)($amount * ($this->discount_value / 100))
-            : min($this->discount_value, $amount); // Evita un descuento mayor al monto
-    }
+    // public function calculateDiscount(int $amount): int
+    // {
+    //     return $this->type === 'percentage'
+    //         ? (int)($amount * ($this->discount_value / 100))
+    //         : min($this->discount_value, $amount); // Evita un descuento mayor al monto
+    // }
 
     /**
      * Incrementa el contador de usos del cupón.

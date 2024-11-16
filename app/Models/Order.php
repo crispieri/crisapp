@@ -12,7 +12,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Order extends Model
 {
-    /** @use HasFactory<\Database\Factories\OrderFactory> */
     use HasFactory;
     use HasUlids;
 
@@ -51,31 +50,38 @@ class Order extends Model
         return $this->hasOne(Address::class);
     }
 
+    public function calculateSubTotal(): float
+    {
+        $product = $this->product;
+        $price = $product->offer_price ?? $product->price; // Usa el precio de oferta si está disponible
+        return $this->quantity * $price;
+    }
+
     /**
      * Calcula el total de la orden, aplicando el descuento si el cupón es válido.
      */
-    public function calculateTotal(int $subTotal): int
-    {
-        $discount = $this->coupon && $this->coupon->isValid()
-            ? $this->coupon->calculateDiscount($subTotal)
-            : 0;
+    // public function calculateTotal(int $subTotal): int
+    // {
+    //     $discount = $this->coupon && $this->coupon->isValid()
+    //         ? $this->coupon->calculateDiscount($subTotal)
+    //         : 0;
 
-        $this->discount_amount = $discount;
-        return $subTotal - $discount;
-    }
+    //     $this->discount_amount = $discount;
+    //     return $subTotal - $discount;
+    // }
 
-    /**
-     * Aplica el cupón a la orden si es válido, actualizando el contador de usos del cupón.
-     */
-    public function applyCoupon(): void
-    {
-        if ($this->coupon && $this->coupon->isValid()) {
-            $this->coupon->incrementUsage();
-        } else {
-            $this->coupon_id = null; // Elimina el cupón si no es válido
-            $this->discount_amount = 0;
-        }
-    }
+    // /**
+    //  * Aplica el cupón a la orden si es válido, actualizando el contador de usos del cupón.
+    //  */
+    // public function applyCoupon(): void
+    // {
+    //     if ($this->coupon && $this->coupon->isValid()) {
+    //         $this->coupon->incrementUsage();
+    //     } else {
+    //         $this->coupon_id = null; // Elimina el cupón si no es válido
+    //         $this->discount_amount = 0;
+    //     }
+    // }
 
     // public function calculateTotal(int $subTotal): int
     // {

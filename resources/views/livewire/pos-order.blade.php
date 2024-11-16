@@ -4,7 +4,7 @@
     <div class="filters">
         <!-- Input para buscar productos por nombre -->
         <input type="text" wire:model.debounce.300ms="searchTerm" placeholder="Search by product name..."
-            class="form-control" style="margin-bottom: 10px;" />
+            class="form-control" style="margin-bottom: 10px;">
 
         <!-- Select para filtrar productos por categoría -->
         <select wire:model="category" class="form-control" style="margin-bottom: 10px;">

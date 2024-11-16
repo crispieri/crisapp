@@ -22,6 +22,7 @@ class ProductFactory extends Factory
             'product_name' => $this->faker->word(),
             'slug' => $this->faker->slug(),
             'price' => $this->faker->randomFloat(2, 5, 100), // Precio aleatorio entre 5 y 100
+            'offer_price' => $this->faker->randomFloat(2, 5, 100), // Precio aleatorio entre 5 y 100
             'images' => $this->faker->imageUrl(), // URL de una imagen aleatoria
             'description' => $this->faker->paragraph(),
             'is_active' => $this->faker->boolean(),

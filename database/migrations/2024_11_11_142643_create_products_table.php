@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('product_name');
             $table->string('slug')->unique();
             $table->integer('price')->nullable();
+            $table->integer('offer_price')->nullable();
             $table->json('images')->nullable();
             $table->longText('description')->nullable();
             $table->boolean('is_active')->default(true);

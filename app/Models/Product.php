@@ -22,6 +22,7 @@ class Product extends Model
         'product_name',
         'slug',
         'price',
+        'offer_price',
         'images',
         'description',
         'is_active',

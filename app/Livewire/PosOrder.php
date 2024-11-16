@@ -13,33 +13,34 @@ class PosOrder extends Component
 
     public $searchTerm = '';
     public $category = '';
+    protected $queryString = ['searchTerm', 'category'];
 
-    // Actualizar los métodos de filtrado para resetear la paginación al cambiar de filtro
-    public function updatingSearchTerm()
+    public function updating($property)
     {
         $this->resetPage();
     }
 
-    public function updatingCategory()
+    public function getFilteredProductsProperty()
     {
-        $this->resetPage();
+        return Product::where('is_active', true)
+            ->when(
+                $this->searchTerm,
+                fn($query) =>
+                $query->where('product_name', 'like', '%' . $this->searchTerm . '%')
+            )
+            ->when(
+                $this->category,
+                fn($query) =>
+                $query->where('category_id', $this->category)
+            )
+            ->paginate(12);
     }
 
     public function render()
     {
-        $categories = Category::all();
-        $products = Product::where('is_active', true)
-            ->when($this->searchTerm, function ($query) {
-                $query->where('product_name', 'like', '%' . $this->searchTerm . '%');
-            })
-            ->when($this->category, function ($query) {
-                $query->where('category_id', $this->category);
-            })
-            ->paginate(12);
-
         return view('livewire.pos-order', [
-            'products' => $products,
-            'categories' => $categories,
+            'categories' => Category::all(),
+            'products' => $this->filteredProducts,
         ]);
     }
 }
